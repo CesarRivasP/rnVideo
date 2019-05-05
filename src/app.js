@@ -6,116 +6,82 @@ import {
   Text,
   Animated,
   Dimensions,
-  TextInput
+  TextInput,
+  ScrollView
 } from 'react-native';
 import Video from 'react-native-video'
 import Icon from 'react-native-vector-icons/FontAwesome'
 import WavesVideo from '../assets/media/waves.mp4';
 
 
+const THRESHOLD = 100;
+
 class AppLayout extends Component {
 
   state = {
+    paused: true,
     error: false,
     buffering: true,
     animated: new Animated.Value(0)
-  }
-
-  handleError = (meta) => {
-    const { error: { code } } = meta;
-    let error = "An error ocurred playing this video"
-
-    switch(code) {
-      case -11800:
-        error = "Could not load video from URL"
-        break;
-    }
-
-    this.setState({
-      error
-    })
-  }
-
-  handleLoadStart = () => {
-    this.triggerBufferAnimation();
   };
 
-  triggerBufferAnimation = () => {
-    this.loopingAnimation = Animated.loop(
-      Animated.timing(this.state.animated, {
-        toValue: 1,
-        duration: 350
+  position = {
+    start: null,
+    end: null
+  };
+
+  handleVideoLayout = (e) => {
+    const { height } = Dimensions.get('window');
+    this.position.start = e.nativeEvent.layout.y - height + THRESHOLD;
+    this.position.end = e.nativeEvent.layout.y + e.nativeEvent.layout.height - THRESHOLD;
+  };
+
+  handleScroll = (e) => {
+    const scrollPosition = e.nativeEvent.contentOffset.y;
+    const paused = this.state.paused;
+    const { start, end } = this.position;
+
+    if(scrollPosition > start && scrollPosition < end && paused){
+      this.setState({
+        paused: false
       })
-    ).start();
-  }
-
-  handleBuffer = (meta) => {
-    meta.isBuffering && this.triggerBufferAnimation();
-
-    if(this.loopingAnimation && !meta.isBuffering) {
-      this.loopingAnimation.stopAnimation();
     }
-
-    this.setState({
-      buffering: meta.isBuffering
-    })
+    else if((scrollPosition > end || scrollPosition < start) && !paused){
+      this.setState({
+        paused: true
+      })
+    }
   };
 
   render () {
     const { width } = Dimensions.get('window');
-    const height = width * 0.5625;
-    const { error } = this.state;
-    const { buffering } = this.state;
-    const { bufferingAndError } = this.state;
-    const interpolatedAnimation = this.state.animated.interpolate({
-      inputRange: [0, 1],
-      outputRange: ["0deg", "360deg"]
-    });
-
-    const rotateStyle = {
-      transform: [
-        { rotate: interpolatedAnimation }
-      ]
-    }
-
     return (
       <React.Fragment>
-          <View style={ bufferingAndError ? styles.bufferingAndError : undefined }>
-            <Video
-              repeat
-              style={{ width: "100%", height }}
-              source={WavesVideo} // en caso de tener un video local
-              // source={{uri:"https://player.vimeo.com/external/2072777102.hd.mp4?s=6939b93ae3554679b57f5e7fa831eef712a74b3c&profile_id=119&oauth2_token_id=57447761"}}
-              resizeMode="contain"
-              // style={StyleSheet.absoluteFill}
-              onError={this.handleError}
-              onLoadStart={this.handleLoadStart}
-              onBuffer={this.handleBuffer}
-            />
-            <View style={styles.videoCover}>
-              <Text style={styles.header}>
-                Login
-              </Text>
-              <TextInput placeholder="Email" style={styles.input} />
-              <TextInput placeholder="Password" style={styles.input} secureTextEntry />
-              {
-                error ?
-                  (
-                    <React.Fragment>
-                      <Icon name="exclamation-triangle" size={35} color="red"/>
-                      <Text style={{ fontSize: 15, color: 'white' }}>{error}</Text>
-                    </React.Fragment>
-                  )
-                  :
-                  (
-                    buffering &&
-                      <Animated.View style={rotateStyle}>
-                        <Icon name="circle-o-notch" size={30} color="#FFF" />
-                      </Animated.View>
-                  )
-              }
-            </View>
+        <ScrollView scrollEventThrottle={16} onScroll={this.handleScroll}>
+          <View style={ styles.fakeContent }>
+            <Text>
+              { this.state.paused? "Paused" : "Playing" }
+            </Text>
           </View>
+          <Video
+            pause={this.state.paused}
+            onLayout={this.handleVideoLayout}
+            repeat
+            style={{ width, height: 300 }}
+            source={WavesVideo} // en caso de tener un video local
+            // source={{uri:"https://player.vimeo.com/external/2072777102.hd.mp4?s=6939b93ae3554679b57f5e7fa831eef712a74b3c&profile_id=119&oauth2_token_id=57447761"}}
+            resizeMode="contain"
+            // style={StyleSheet.absoluteFill}
+            onError={this.handleError}
+            onLoadStart={this.handleLoadStart}
+            onBuffer={this.handleBuffer}
+          />
+          <View style={ styles.fakeContent }>
+            <Text>
+              { this.state.paused? "Paused" : "Playing" }
+            </Text>
+          </View>
+        </ScrollView>
       </React.Fragment>
     );
   }
@@ -135,9 +101,6 @@ const styles = StyleSheet.create({
   bufferingAndError: {
     backgroundColor: "#000"
   },
-  // error: {
-  //   backgroundColor: "#000"
-  // }
   header: {
     backgroundColor: "transparent",
     fontSize: 30,
@@ -149,6 +112,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     marginVertical: 15,
     paddingLeft: 15
+  },
+  fakeContent: {
+    height: 850,
+    backgroundColor: '#CCC',
+    paddingTop: 250,
+    alignItems: 'center'
   }
 })
 
