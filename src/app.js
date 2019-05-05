@@ -5,7 +5,8 @@ import {
   Fragment,
   Text,
   Animated,
-  Dimensions
+  Dimensions,
+  TextInput
 } from 'react-native';
 import Video from 'react-native-video'
 import Icon from 'react-native-vector-icons/FontAwesome'
@@ -92,6 +93,11 @@ class AppLayout extends Component {
               onBuffer={this.handleBuffer}
             />
             <View style={styles.videoCover}>
+              <Text style={styles.header}>
+                Login
+              </Text>
+              <TextInput placeholder="Email" style={styles.input} />
+              <TextInput placeholder="Password" style={styles.input} secureTextEntry />
               {
                 error ?
                   (
@@ -128,12 +134,22 @@ const styles = StyleSheet.create({
   },
   bufferingAndError: {
     backgroundColor: "#000"
-  }
+  },
   // error: {
   //   backgroundColor: "#000"
   // }
+  header: {
+    backgroundColor: "transparent",
+    fontSize: 30,
+    color:'white'
+  },
+  input: {
+    width: 300,
+    height: 50,
+    backgroundColor: '#FFF',
+    marginVertical: 15,
+    paddingLeft: 15
+  }
 })
 
 export default AppLayout;
-
-{/*  */}
